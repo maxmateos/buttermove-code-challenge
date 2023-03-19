@@ -1,0 +1,83 @@
+spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    profiles:
+      active: local
+
+output:
+  ansi:
+    enabled: always
+
+
+security:
+  username: user1
+  password: password1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.buttermove.demo: DEBUG
+
+# Valid States, can be customized per environment
+states-config:
+  states:
+    - name: New York
+      code: NY
+      standard-rate: 0.25
+      premium-rate: 0.35
+      calculation-algorithm: standard-tax
+    - name: California
+      code: CA
+      standard-rate: 0.23
+      premium-rate: 0.33
+      calculation-algorithm: long-distance-discount
+    - name: Arizona
+      code: AZ
+      standard-rate: 0.20
+      premium-rate: 0.30
+      calculation-algorithm: long-distance-discount
+    - name: Texas
+      code: TX
+      standard-rate: 0.18
+      premium-rate: 0.28
+      calculation-algorithm: distance-cohorts-discount
+    - name: Ohio
+      code: OH
+      standard-rate: 0.15
+      premium-rate: 0.25
+      calculation-algorithm: distance-cohorts-discount
+
+price-algorithm-configs:
+  algorithms:
+    - name: standard-tax
+      tax-rate: 0.21 # Percentage of tax that will be charged
+      premium-algorithm-configs:
+        max-distance: 25.0 # Lower end of discount range in KM
+        over-bounds-discount: 0.05
+    - name: distance-cohorts-discount
+      min-distance: 20.0 # Lower end of discount range in KM
+      max-distance: 30.0 # Upper end of discount range in KM
+      under-bounds-discount: 0.0
+      within-bounds-discount: 0.03
+      over-bounds-discount: 0.05
+      premium-algorithm-configs:
+        max-distance: 25.0 # Lower end of discount range in KM
+        over-bounds-discount: 0.05
+    - name: long-distance-discount
+      max-distance: 26.0 # Lower end of discount range in KM
+      over-bounds-discount: 0.05
+      premium-algorithm-configs:
+        max-distance: 25.0 # Lower end of discount range in KM
+        over-bounds-discount: 0.05
+
+env: local

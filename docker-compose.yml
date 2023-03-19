@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  buttermove:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    image: buttermove
+    container_name: buttermove
+    ports:
+      - 8080:8080
+    networks:
+      - samplenet
+
+networks:
+  samplenet:
+    driver: bridge

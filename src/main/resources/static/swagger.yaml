@@ -1,0 +1,298 @@
+openapi: 3.0.0
+info:
+  title: ButterMove Price Calculator Service
+  description: Price calculator that provides the price for hiring ButterMove moving company services. Supports capability for configuration of different calculation algorithms per state, each with their own rate and discount policies.
+  contact:
+    name: Maximiliano Mateos
+    email: maxmateos93@gmail.com
+  version: v1
+servers:
+  - url: http://localhost:8080
+    description: Generated server url
+paths:
+  "/actuator/health":
+    get:
+      tags:
+        - actuator
+      summary: Health endpoint, responds with 200 once application turns on successfully
+      operationId: actuatorHealth
+      responses:
+        '200':
+          description: Application is up and healthy
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ActuatorHealthResponse"
+  "/v1/price-calculator/states/{stateCode}/estimation-modes/{estMode}/calculate":
+    get:
+      tags:
+        - Calculator
+      summary: Calculate the total price for hiring ButterMove services by taking into account state, estimation mode, base rate, distance, and the configured calculation algorithm for that state.
+      operationId: getPriceCalculation
+      parameters:
+        - in: header
+          name: ip-client
+          description: The consumer's iPv4 or IPv6 address
+          required: true
+          schema:
+            type: string
+            example: "33.34.35.36"
+        - in: path
+          name: stateCode
+          description: Abbreviation code for the state ButterMove services would be hired in. Call state configs endpoint for a list of valid options
+          required: true
+          schema:
+            type: string
+            example: "NY"
+        - in: path
+          name: estMode
+          description: Estimation mode that will be used to calculate price. Valid options - [NORMAL, PREMIUM]
+          required: true
+          schema:
+            type: string
+            example: "NORMAL"
+        - in: query
+          name: baseRate
+          description: The base cost of hiring the ButterMove service
+          required: true
+          schema:
+            type: number
+            example: "10.0"
+        - in: query
+          name: distanceKms
+          description: The move distance ButterMove will transport a client's belongings
+          required: true
+          schema:
+            type: string
+            example: "100.0"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PriceCheckResponse"
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        401:
+          description: authorization header is missing or invalid
+      security:
+        - basicAuth: [ ]
+  "/v1/configs/states":
+    get:
+      tags:
+        - Configurations
+      summary: Requests a list of the active states supported by the Price Calculator. Includes all configurable properties per state.
+      operationId: getStateConfigs
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GetStateConfigsResponse"
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        401:
+          description: authorization header is missing or invalid
+      security:
+        - basicAuth: [ ]
+  "/v1/configs/states/{stateCode}":
+    get:
+      tags:
+        - Configurations
+      summary: Requests configurable properties of a state that matches the provided state code.
+      operationId: getStateConfigByCode
+      parameters:
+        - in: path
+          name: stateCode
+          description: Abbreviation code for the state ButterMove services would be hired in. Call state configs endpoint for a list of valid options
+          required: true
+          schema:
+            type: string
+            example: "NY"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/StateConfig"
+        401:
+          description: authorization header is missing or invalid
+        '404':
+          description: resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+      security:
+        - basicAuth: [ ]
+  "/v1/configs/algorithms":
+    get:
+      tags:
+        - Configurations
+      summary: Requests a list of the active algorithms supported by the Price Calculator. Includes all configured properties per algorithm.
+      operationId: getAlgorithmConfigs
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/GetAlgorithmConfigsResponse"
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        401:
+          description: authorization header is missing or invalid
+      security:
+        - basicAuth: [ ]
+  "/v1/configs/algorithms/{algorithmName}":
+    get:
+      tags:
+        - Configurations
+      summary: Requests configured properties of an algorithm that matches the provided algorithm name.
+      operationId: getAlgorithmConfigByName
+      parameters:
+        - in: path
+          name: algorithmName
+          description: Price calculation algorithm name for logic and discounts to be effected to states that are configured to use this algorithm. Call algorithm configs endpoint for a list of valid options
+          required: true
+          schema:
+            type: string
+            example: "standard-tax"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/StandardAlgorithmConfig"
+        401:
+          description: authorization header is missing or invalid
+        '404':
+          description: resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+      security:
+        - basicAuth: [ ]
+components:
+  schemas:
+    ActuatorHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: UP
+    PriceCheckResponse:
+      type: object
+      properties:
+        calculatedPrice:
+          type: number
+          description: Total price for requested service after commission and discounts
+          example: 51.7275
+        date:
+          type: string
+          description: Date in RFC3339 the calculatedPrice was computed
+          example: "2023-03-18T13:39:30-07:00"
+    GetStateConfigsResponse:
+      type: object
+      properties:
+        states:
+          type: array
+          description: List of state configurations
+          items:
+              "$ref": "#/components/schemas/StateConfig"
+    StateConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          description: State's human readable name
+          example: New York
+        code:
+          type: string
+          description: Two letter abbreviation for the state
+          example: NY
+        standardRate:
+          type: number
+          description: Rate that will be applied to base cost on NORMAl estimation mode
+          example: 0.25
+        premiumRate:
+          type: number
+          description: Rate that will be applied to base cost on PREMIUM estimation mode
+          example: 0.35
+    GetAlgorithmConfigsResponse:
+      type: object
+      properties:
+        states:
+          type: array
+          description: List of algorithm configurations
+          items:
+            "$ref": "#/components/schemas/StandardAlgorithmConfig"
+    AlgorithmConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Algorithm's name
+          example: standard-tax
+        taxRate:
+          type: number
+          description: Percentage of tax that will be charged out of the base rate + commission
+          example: 0.21
+        minDistance:
+          type: number
+          description: Lower end reference distance to be accounted for by algorithms. This usually will be used to calculate discounts that depend on transport distance.
+          example: 20.0
+        maxDistance:
+          type: number
+          description: Upper end reference distance to be accounted for by algorithms. This usually will be used to calculate discounts that depend on transport distance.
+          example: 20.0
+        underBoundsDiscount:
+          type: number
+          description: Percentage of discount that will be applied to an algorithm that support discounts for distances lesser than minDistance
+          example: 0.0
+        withindBoundsDiscount:
+          type: number
+          description: Percentage of discount that will be applied to an algorithm that support discounts for distances within minDistance and maxDistance
+          example: 0.03
+        overBoundsDiscount:
+          type: number
+          description: Percentage of discount that will be applied to an algorithm that support discounts for distances greater than maxDistance
+          example: 0.05
+    StandardAlgorithmConfig:
+      allOf:
+        - "$ref": "#/components/schemas/AlgorithmConfig"
+        - type: object
+          properties:
+            premiumDiscountConfigs:
+              "$ref": "#/components/schemas/AlgorithmConfig"
+    ValidationErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          description: An array of error messages explaining why the request failed
+          minItems: 1
+          items:
+            type: string
+            example: ["'baseRate' param is required and must be a valid decimal number"]
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
